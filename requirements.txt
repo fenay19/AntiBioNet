@@ -1,0 +1,20 @@
+# Core
+streamlit>=1.32.0
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+
+# Visualisation
+plotly>=5.15.0
+matplotlib>=3.6.0
+
+# Gen AI providers (install only what you use)
+openai>=1.10.0                  # for OpenAI GPT-4
+google-generativeai>=0.5.0      # for Google Gemini
+requests>=2.28.0                # for Ollama (already bundled usually)
+
+# Optional — SHAP explainability
+# shap>=0.44.0
+
+# Optional — PDF report export
+# reportlab>=4.0.0
