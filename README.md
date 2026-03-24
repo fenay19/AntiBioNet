@@ -1,7 +1,7 @@
 # AMR-Insight — Antibiotic Resistance Clinical Dashboard
 
 **Streamlit + Generative AI clinical decision support tool for predicting
-Multi-Drug Resistance (MDR) in bacterial isolates.**
+Multi-Drug Resistance (MDR) in bacterial isolates.**..
 
 ---
 
