@@ -203,7 +203,7 @@ def _call_gemini(
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
-            model_name     = "gemini-1.5-pro",
+            model_name     = "gemini-2.0-flash",
             system_instruction = system,
         )
         resp = model.generate_content(

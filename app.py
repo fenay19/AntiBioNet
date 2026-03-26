@@ -9,6 +9,8 @@
 
 import os, sys, warnings
 warnings.filterwarnings("ignore")
+from dotenv import load_dotenv
+load_dotenv()
 
 # Ensure project root is on sys.path so local packages (views, etc.) resolve
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +24,11 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import json, io
+
+# ── Gen AI Configuration (Backend) ───────────────────────────────
+AI_PROVIDER = "Google Gemini"  # "OpenAI (GPT-4o)", "Google Gemini", "Ollama (Local)", "Rule-based (Offline)"
+API_KEY     =  os.getenv("API_URL")                       # Enter your API key here
+# ─────────────────────────────────────────────────────────────────
 
 # ── Local modules ────────────────────────────────────────────────
 from controllers.data_controller   import DataController
@@ -380,8 +387,8 @@ if predict_btn:
             prediction  = p,
             features    = p["patient"],
             top_factors = p["top_factors"],
-            provider    = ai_provider,
-            api_key     = api_key,
+            provider    = AI_PROVIDER,
+            api_key     = API_KEY,
         )
 
 
@@ -899,8 +906,8 @@ with tab3:
                     prediction  = pred,
                     features    = pred["patient"],
                     top_factors = pred["top_factors"],
-                    provider    = ai_provider,
-                    api_key     = api_key,
+                    provider    = AI_PROVIDER,
+                    api_key     = API_KEY,
                 )
             st.rerun()
 
@@ -955,7 +962,7 @@ with tab4:
 
         st.session_state.chat_history.append({"role": "user", "text": user_input})
         with st.spinner("AMR-AI thinking…"):
-            reply = chat_response(user_input, context, provider=ai_provider, api_key=api_key)
+            reply = chat_response(user_input, context, provider=AI_PROVIDER, api_key=API_KEY)
         st.session_state.chat_history.append({"role": "ai", "text": reply})
         st.rerun()
 
