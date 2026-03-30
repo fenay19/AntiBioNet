@@ -120,8 +120,8 @@ def generate_explanation(
         return _call_openai(prompt_user, api_key)
     elif "Gemini" in provider and api_key:
         return _call_gemini(prompt_user, api_key)
-    elif "Ollama" in provider:
-        return _call_ollama(prompt_user)
+    elif "Hugging Face" in provider and api_key:
+        return _call_huggingface(prompt_user, api_key)
     else:
         return _rule_based_explanation(prediction, features)
 
@@ -154,8 +154,8 @@ def chat_response(
         return _call_openai(user_message, api_key, system=system, max_tokens=400)
     elif "Gemini" in provider and api_key:
         return _call_gemini(user_message, api_key, system=system, max_tokens=400)
-    elif "Ollama" in provider:
-        return _call_ollama(user_message, system=system)
+    elif "Hugging Face" in provider and api_key:
+        return _call_huggingface(user_message, api_key, system=system, max_tokens=400)
     else:
         return _rule_based_chat(user_message)
 
@@ -224,27 +224,39 @@ def _call_gemini(
         return f"[Gemini Error] {e}\n\n" + _rule_based_explanation_from_text(user_prompt)
 
 
-def _call_ollama(
+
+
+
+def _call_huggingface(
     user_prompt: str,
+    api_key:     str,
     system:      str = _EXPLANATION_SYSTEM,
-    model:       str = "llama3",
-    host:        str = "http://localhost:11434",
+    max_tokens:  int = 800,
 ) -> str:
     try:
-        import requests
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user_prompt},
-            ],
-            "stream": False,
-        }
-        r = requests.post(f"{host}/api/chat", json=payload, timeout=60)
-        r.raise_for_status()
-        return r.json()["message"]["content"].strip()
+        from huggingface_hub import InferenceClient
+        # Optimized for superior clinical reasoning and instruction following
+        client = InferenceClient("meta-llama/Meta-Llama-3-8B-Instruct", token=api_key)
+        
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        response = client.chat_completion(
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=0.3
+        )
+        return response.choices[0].message.content.strip()
+    except ImportError:
+        return (
+            "[Hugging Face Error] The 'huggingface_hub' package is not installed.\n"
+            "Install it with:  pip install huggingface_hub\n\n"
+            + _rule_based_explanation_from_text(user_prompt)
+        )
     except Exception as e:
-        return f"[Ollama Error] {e}\n\n" + _rule_based_explanation_from_text(user_prompt)
+        return f"[Hugging Face Error] {e}\n\n" + _rule_based_explanation_from_text(user_prompt)
 
 
 # ════════════════════════════════════════════════════════════════

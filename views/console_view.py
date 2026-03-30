@@ -1,13 +1,4 @@
-"""
-views/console_view.py
----------------------
-Console-based output helper for resistance summaries, model metrics,
-and treatment recommendations.
-
-NOTE: In the Streamlit app these methods are unused — all output goes
-      through Plotly / st.markdown.  The class exists so that
-      `controllers.report_controller` can import it without error.
-"""
+ 
 
 from typing import Dict, Optional
 

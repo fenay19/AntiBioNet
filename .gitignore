@@ -1,0 +1,27 @@
+# Virtual environments
+venv/
+env/
+.env
+
+# Python Caches
+__pycache__/
+*.pyc
+*.pyo
+
+# IDEs and System files
+.vscode/
+.idea/
+.DS_Store
+
+# Streamlit/Notebooks
+.streamlit/
+.ipynb_checkpoints/
+
+# Generated outputs
+outputs/
+
+# Temporary files from testing parameters
+check_metrics.py
+check_metrics2.py
+metrics_out.txt
+diagnose_gemini.py

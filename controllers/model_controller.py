@@ -13,7 +13,8 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, roc_auc_score
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, RandomizedSearchCV
+from xgboost import XGBClassifier
 
 from models.resistance_dataset import ResistanceDataset
 from models.resistance_model import ResistanceModel
@@ -42,7 +43,7 @@ class ModelController:
                 max_depth=10,
                 min_samples_leaf=5,
                 random_state=42,
-                n_jobs=-1,
+                n_jobs=None,
             ),
             "Gradient Boosting": GradientBoostingClassifier(
                 n_estimators=100,
@@ -55,7 +56,23 @@ class ModelController:
                 C=1.0,
                 random_state=42,
             ),
+            "XGBoost": XGBClassifier(
+                n_estimators=100,
+                learning_rate=0.1,
+                max_depth=4,
+                random_state=42,
+                eval_metric="logloss",
+            ),
         }
+
+        self._estimator_defs["Ensemble"] = __import__('sklearn.ensemble').ensemble.VotingClassifier(
+            estimators=[
+                ('rf', RandomForestClassifier(n_estimators=200, max_depth=10, min_samples_leaf=5, random_state=42)),
+                ('gb', GradientBoostingClassifier(n_estimators=100, learning_rate=0.05, max_depth=4, random_state=42)),
+                ('xgb', XGBClassifier(n_estimators=100, learning_rate=0.05, max_depth=4, random_state=42, eval_metric="logloss"))
+            ],
+            voting='soft'
+        )
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -64,12 +81,44 @@ class ModelController:
         print("\n[ModelController] Training models …")
         ds = self.dataset
 
+        param_grids = {
+            "Random Forest": {
+                'n_estimators': [100, 200, 300],
+                'max_depth': [5, 10, 15]
+            },
+            "Gradient Boosting": {
+                'n_estimators': [100, 200],
+                'learning_rate': [0.05, 0.1, 0.2]
+            },
+            "XGBoost": {
+                'n_estimators': [100, 200],
+                'learning_rate': [0.05, 0.1, 0.2],
+                'max_depth': [3, 4, 5]
+            }
+        }
+
         for name, estimator in self._estimator_defs.items():
-            print(f"  Fitting {name} …", end="", flush=True)
-            estimator.fit(ds.X_train, ds.y_train)
+            if name in param_grids:
+                print(f"  Tuning and Fitting {name} …", end="", flush=True)
+                search = RandomizedSearchCV(
+                    estimator=estimator,
+                    param_distributions=param_grids[name],
+                    n_iter=5, # Keep it fast
+                    scoring='roc_auc',
+                    cv=3,
+                    n_jobs=None,
+                    random_state=42
+                )
+                search.fit(ds.X_train, ds.y_train)
+                best_est = search.best_estimator_
+            else:
+                print(f"  Fitting {name} …", end="", flush=True)
+                estimator.fit(ds.X_train, ds.y_train)
+                best_est = estimator
+
             self._models[name] = ResistanceModel(
                 name=name,
-                estimator=estimator,
+                estimator=best_est,
                 feature_cols=ds.feature_cols,
             )
             print(" done")
@@ -86,7 +135,7 @@ class ModelController:
             y_proba = est.predict_proba(ds.X_test)[:, 1]
 
             cv_scores = cross_val_score(
-                est, ds.X, ds.y, cv=5, scoring="roc_auc", n_jobs=-1
+                est, ds.X, ds.y, cv=5, scoring="roc_auc", n_jobs=None
             )
 
             rm.y_pred   = y_pred

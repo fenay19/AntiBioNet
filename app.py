@@ -26,8 +26,8 @@ from datetime import datetime
 import json, io
 
 # ── Gen AI Configuration (Backend) ───────────────────────────────
-AI_PROVIDER = "Google Gemini"  # "OpenAI (GPT-4o)", "Google Gemini", "Ollama (Local)", "Rule-based (Offline)"
-API_KEY     =  os.getenv("API_URL")                       # Enter your API key here
+AI_PROVIDER = "Hugging Face"  # "OpenAI (GPT-4o)", "Google Gemini", "Hugging Face", "Rule-based (Offline)"
+API_KEY     =  os.getenv("HUGGINGFACE_API_KEY") or os.getenv("API_URL") # Enter your API key here
 # ─────────────────────────────────────────────────────────────────
 
 # ── Local modules ────────────────────────────────────────────────
@@ -191,23 +191,17 @@ hr { border-color: var(--border) !important; }
 # ════════════════════════════════════════════════════════════════
 #  DATA & MODEL  (cached)
 # ════════════════════════════════════════════════════════════════
-DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "Bacteria_dataset_Multiresictance.csv")
+import joblib
 
-@st.cache_resource(show_spinner="🔬 Loading dataset & training models…")
+PIPELINE_PATH = os.path.join(os.path.dirname(__file__), "models", "pipeline.pkl")
+
+@st.cache_resource(show_spinner="🔬 Loading pre-trained dataset & models…")
 def load_pipeline():
-    data_ctrl = DataController(filepath=DATA_PATH)
-    data_ctrl.load()
-    data_ctrl.preprocess()
-    data_ctrl.engineer_features()
-    dataset = data_ctrl.get_dataset()
-
-    model_ctrl = ModelController(dataset)
-    model_ctrl.train_all()
-    model_ctrl.evaluate_all()
-    results = model_ctrl.get_results()
-
-    report_ctrl = ReportController(dataset, results)
-    return dataset, results, report_ctrl
+    if not os.path.exists(PIPELINE_PATH):
+        raise FileNotFoundError(f"Pipeline artifacts not found at {PIPELINE_PATH}. Please run 'python train_model.py' first.")
+    
+    pipeline_data = joblib.load(PIPELINE_PATH)
+    return pipeline_data["dataset"], pipeline_data["results"], pipeline_data["report_ctrl"]
 
 try:
     dataset, results, report_ctrl = load_pipeline()
@@ -290,8 +284,8 @@ st.markdown("""
 # ════════════════════════════════════════════════════════════════
 if not DATA_LOADED:
     st.error(f"""
-**Dataset not found.**  
-Place `Bacteria_dataset_Multiresictance.csv` inside the `data/` folder and restart.
+**Pre-trained Models Not Found.**  
+Please run `python train_model.py` in your terminal to train the models and restart the app.
 
 Error: `{LOAD_ERROR}`
 """)
@@ -710,25 +704,28 @@ with tab1:
 
         col_a, col_b, col_c = st.columns(3)
         with col_a:
-            st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-title">⛔ Avoid (High Resistance)</div>', unsafe_allow_html=True)
             pills = "".join(f'<span class="pill-avoid">{ab}</span>' for ab in avoid)
-            st.markdown(f'<div>{pills}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">⛔ Avoid (High Resistance)</div>
+              <div>{pills}</div>
+            </div>""", unsafe_allow_html=True)
 
         with col_b:
-            st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-title">⚠️ Caution (Moderate)</div>', unsafe_allow_html=True)
             pills = "".join(f'<span class="pill-caution">{ab}</span>' for ab in caution)
-            st.markdown(f'<div>{pills}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">⚠️ Caution (Moderate)</div>
+              <div>{pills}</div>
+            </div>""", unsafe_allow_html=True)
 
         with col_c:
-            st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-title">✅ Consider (Lower Resistance)</div>', unsafe_allow_html=True)
             pills = "".join(f'<span class="pill-suggest">{ab}</span>' for ab in suggest)
-            st.markdown(f'<div>{pills}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">✅ Consider (Lower Resistance)</div>
+              <div>{pills}</div>
+            </div>""", unsafe_allow_html=True)
 
         # ── Download report ──────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
